@@ -2,24 +2,24 @@
 %0.1.2 transformer RLC ladder network.
 %1.0 Defining experimentally controlled variables
     %1.1 Number of RLC ladders (physically speaking, coils in the TF)
-    ntest=5;
-    ncheck=5;
+    npotential=4;
+    nactual=5;
     %1.2.1 Partial discharge in the form of a current source Is
     %1.2.2 (to be defined later) Is=?
     %1.3.1 Location of node of partial discharge development (i):
     %1.3.2 Right now only ALONG the winding
-    itest=4;
-    icheck=4;
+    ipotential=3;
+    iactual=4;
 %***********************************************************************    
 %2.0 Defining ladder nw constants:
 Rs=1.33;Cs=0.6;Cg=0.933;Ls=0.4310;
-M=[0.2392,0.1435,0.0947,0.0496,zeros(1,ntest-6)];
+M=[0.2392,0.1435,0.0947,0.0496,zeros(1,npotential-6)];
 %***********************************************************************    
 %3.0 Constructing matrices useful for state space representation:
 %3.1 Inductance (L) Matrix
-L=zeros(ntest,ntest);
-for r= 1:ntest
-    for c= 1:ntest
+L=zeros(npotential,npotential);
+for r= 1:npotential
+    for c= 1:npotential
         if r == c 
             L(r,c)=Ls;
         else
@@ -28,39 +28,39 @@ for r= 1:ntest
     end
 end
 %3.2 Resistance (R) Matrix
-R=Rs*eye(ntest);
+R=Rs*eye(npotential);
 %3.3.1 (S,SL1,SL2,SN1,SN2) Matrices
 %3.3.2 L derived from when Live (node) shorted (to GND)
 %3.3.3 N derived from when Neutral (node) shorted (to GND)
-S=[-eye(ntest),zeros(ntest,1)]+[zeros(ntest,1),eye(ntest)];
+S=[-eye(npotential),zeros(npotential,1)]+[zeros(npotential,1),eye(npotential)];
 SL1=S;SL1(:,1)=[];
-SL2=zeros(ntest,1);SL2(itest-1,:)=1;
+SL2=zeros(npotential,1);SL2(ipotential-1,:)=1;
 SN1=S;SN1(:,end)=[];
-SN2=zeros(ntest,1);SN2(itest,:)=1;
+SN2=zeros(npotential,1);SN2(ipotential,:)=1;
 %3.4 Capacitance (C) Matrix with spinoffs (CL1,CN1)
-tmp=eye(ntest+1);tmp(1,1)=1/2;tmp(end,end)=1/2;
-C=(Cg+2*Cs)*tmp+(-Cs)*[zeros(ntest,1),eye(ntest);zeros(1,ntest+1)]+(-Cs)*[zeros(1,ntest+1);eye(ntest),zeros(ntest,1)];
+tmp=eye(npotential+1);tmp(1,1)=1/2;tmp(end,end)=1/2;
+C=(Cg+2*Cs)*tmp+(-Cs)*[zeros(npotential,1),eye(npotential);zeros(1,npotential+1)]+(-Cs)*[zeros(1,npotential+1);eye(npotential),zeros(npotential,1)];
 CL1=C;CL1(1,:)=[];CL1(:,1)=[];
 CN1=C;CN1(end,:)=[];CN1(:,end)=[];
 %***********************************************************************    
 %4.0 Define (A),(B),(C),(D) matrices (State Space Representation):
     %But first, define (M),(-G),(T1):
-    ML=[L,zeros(ntest,ntest);zeros(ntest,ntest),CL1];
-    GL=-[-R,-SL1;SL1.',zeros(ntest,ntest)];
-    T1L=[zeros(ntest,1);SL2];
-    MN=[L,zeros(ntest,ntest);zeros(ntest,ntest),CN1];
-    GN=-[-R,-SN1;SN1.',zeros(ntest,ntest)];
-    T1N=[zeros(ntest,1);SN2];
+    ML=[L,zeros(npotential,npotential);zeros(npotential,npotential),CL1];
+    GL=-[-R,-SL1;SL1.',zeros(npotential,npotential)];
+    T1L=[zeros(npotential,1);SL2];
+    MN=[L,zeros(npotential,npotential);zeros(npotential,npotential),CN1];
+    GN=-[-R,-SN1;SN1.',zeros(npotential,npotential)];
+    T1N=[zeros(npotential,1);SN2];
 AL=-ML\GL;
 BL=ML\T1L;
 AN=-MN\GN;
 BN=MN\T1N;
-tmpL=zeros(1,2*ntest);tmpL(:,1)=1;
-tmpN=zeros(1,2*ntest);tmpN(:,ntest)=1;
-CL=-Cs*AL(ntest+1,:)+tmpL;
-DL=-Cs*BL(ntest+1,:);
-CN=Cs*AN(2*ntest,:)+tmpN;
-DN=Cs*BN(2*ntest,:);
+tmpL=zeros(1,2*npotential);tmpL(:,1)=1;
+tmpN=zeros(1,2*npotential);tmpN(:,npotential)=1;
+CL=-Cs*AL(npotential+1,:)+tmpL;
+DL=-Cs*BL(npotential+1,:);
+CN=Cs*AN(2*npotential,:)+tmpN;
+DN=Cs*BN(2*npotential,:);
 %*********************************************************************** 
 %5.0 Convert State Space Representation (SSR) into Transfer Function (TF)
 [TFLb,TFLa]=ss2tf(AL,BL,CL,DL);
@@ -73,9 +73,9 @@ dt=1e-3;
 t = -1:dt:1;
 impulse= t==0;
 u=0.5*(sign(t+5*dt)-sign(t-5*dt));
-testFilenameL=['fyL_' num2str(ncheck) '_' num2str(icheck) '.mat'];
+testFilenameL=['fyL_' num2str(nactual) '_' num2str(iactual) '.mat'];
 fyLload=load(testFilenameL);
-testFilenameN=['fyN_' num2str(ncheck) '_' num2str(icheck) '.mat'];
+testFilenameN=['fyN_' num2str(nactual) '_' num2str(iactual) '.mat'];
 fyNload=load(testFilenameN);
 fyL=[fyLload.fyL];
 fyN=[fyNload.fyN];
@@ -91,7 +91,7 @@ plot(q,xN,'-b')
 hold on 
 plot(q,xL,':or')
 hold off
-title(['Fourier Spectrum Plots for n= ' num2str(ntest) ' and i= ' num2str(itest)]);
+title(['Fourier Spectrum Plots for n = ' num2str(npotential) ' and i = ' num2str(ipotential) '. Actual values being n = ' num2str(nactual) ' and i = ' num2str(iactual)]);
 axis([0 2000 0 15]);
 xlabel('Frequency');
 ylabel('Amplitude');
